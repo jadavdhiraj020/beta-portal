@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pulse To-Do</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f1115;
+        --panel: #181b22;
+        --panel-soft: #1f232d;
+        --text: #f5f7ff;
+        --muted: #9aa2b1;
+        --accent: #6d8bff;
+        --accent-2: #34d399;
+        --danger: #f87171;
+        --shadow: 0 24px 60px rgba(15, 17, 21, 0.45);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Inter", system-ui, sans-serif;
+        background: #050608;
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 16px;
+        overflow-x: hidden;
+      }
+
+      #galaxy {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      .backdrop {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(
+          circle at top,
+          rgba(38, 44, 80, 0.6) 0%,
+          rgba(9, 10, 18, 0.95) 60%,
+          #050608 100%
+        );
+        z-index: 1;
+        pointer-events: none;
+        mix-blend-mode: screen;
+      }
+
+      .app {
+        width: min(940px, 100%);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 32px;
+        padding: 32px;
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+        display: grid;
+        gap: 28px;
+        animation: floatIn 0.8s ease;
+        position: relative;
+        z-index: 2;
+      }
+
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .title {
+        display: grid;
+        gap: 8px;
+      }
+
+      .title h1 {
+        margin: 0;
+        font-size: clamp(1.8rem, 2.4vw, 2.6rem);
+      }
+
+      .title p {
+        margin: 0;
+        color: var(--muted);
+        max-width: 42ch;
+      }
+
+      .stats {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .stat {
+        background: var(--panel);
+        border-radius: 16px;
+        padding: 14px 18px;
+        min-width: 120px;
+        display: grid;
+        gap: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .stat span {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .stat strong {
+        font-size: 1.4rem;
+      }
+
+      form {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 16px;
+      }
+
+      input[type="text"] {
+        border: none;
+        background: var(--panel-soft);
+        color: var(--text);
+        padding: 16px 18px;
+        border-radius: 16px;
+        font-size: 1rem;
+        outline: 2px solid transparent;
+        transition: outline 0.2s ease, transform 0.2s ease;
+      }
+
+      input[type="text"]:focus {
+        outline: 2px solid rgba(109, 139, 255, 0.6);
+        transform: translateY(-1px);
+      }
+
+      button {
+        border: none;
+        cursor: pointer;
+        border-radius: 16px;
+        padding: 14px 20px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      button.primary {
+        background: linear-gradient(135deg, #6d8bff, #8ab6ff);
+        color: #0c0f17;
+        box-shadow: 0 8px 20px rgba(109, 139, 255, 0.3);
+      }
+
+      button.primary:hover {
+        transform: translateY(-2px) scale(1.01);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 280px;
+        gap: 24px;
+      }
+
+      .card {
+        background: var(--panel);
+        border-radius: 24px;
+        padding: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .list {
+        display: grid;
+        gap: 16px;
+      }
+
+      .todo {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 16px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        animation: slideIn 0.35s ease;
+      }
+
+      .todo.completed {
+        opacity: 0.5;
+      }
+
+      .todo.completed .task-text {
+        text-decoration: line-through;
+      }
+
+      .todo input[type="checkbox"] {
+        appearance: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 8px;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .todo input[type="checkbox"]::after {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 4px;
+        background: var(--accent-2);
+        transform: scale(0);
+        transition: transform 0.2s ease;
+      }
+
+      .todo input[type="checkbox"]:checked {
+        border-color: var(--accent-2);
+        background: rgba(52, 211, 153, 0.2);
+      }
+
+      .todo input[type="checkbox"]:checked::after {
+        transform: scale(1);
+      }
+
+      .task-text {
+        font-size: 1rem;
+      }
+
+      .task-meta {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .todo-actions {
+        display: inline-flex;
+        gap: 8px;
+      }
+
+      .chip {
+        background: rgba(109, 139, 255, 0.12);
+        color: #c6d2ff;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 0.75rem;
+      }
+
+      .filters {
+        display: grid;
+        gap: 12px;
+      }
+
+      .filters button {
+        width: 100%;
+        justify-content: space-between;
+        background: transparent;
+        color: var(--text);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .filters button.active {
+        background: rgba(109, 139, 255, 0.2);
+        border-color: rgba(109, 139, 255, 0.4);
+        color: #e8edff;
+      }
+
+      .filters button span {
+        color: var(--muted);
+        font-size: 0.75rem;
+      }
+
+      .empty {
+        text-align: center;
+        color: var(--muted);
+        padding: 28px 0 12px;
+      }
+
+      .pulse {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(52, 211, 153, 0.15);
+        color: #9ef5d5;
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+
+      @keyframes floatIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 860px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 600px) {
+        form {
+          grid-template-columns: 1fr;
+        }
+
+        button.primary {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="galaxy"></canvas>
+    <div class="backdrop"></div>
+    <main class="app">
+      <header>
+        <div class="title">
+          <h1>Pulse To-Do</h1>
+          <p>Keep the rhythm of your day with fast, animated task tracking powered by local storage.</p>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <span>Remaining</span>
+            <strong id="remaining-count">0</strong>
+          </div>
+          <div class="stat">
+            <span>Completed</span>
+            <strong id="completed-count">0</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="card">
+        <form id="task-form">
+          <input
+            id="task-input"
+            type="text"
+            placeholder="What would you like to finish today?"
+            autocomplete="off"
+            maxlength="120"
+            required
+          />
+          <button class="primary" type="submit">Add Task</button>
+        </form>
+      </section>
+
+      <section class="layout">
+        <div class="card">
+          <div class="list" id="task-list"></div>
+          <p class="empty" id="empty-state">You are all caught up. Add a new task to keep moving.</p>
+        </div>
+        <aside class="card">
+          <div class="filters">
+            <div class="pulse">Live Sync • Local Storage</div>
+            <button type="button" class="active" data-filter="all">
+              All Tasks
+              <span id="count-all">0</span>
+            </button>
+            <button type="button" data-filter="active">
+              Active
+              <span id="count-active">0</span>
+            </button>
+            <button type="button" data-filter="completed">
+              Completed
+              <span id="count-completed">0</span>
+            </button>
+            <button type="button" id="clear-completed">
+              Clear Completed
+              <span>⌫</span>
+            </button>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script>
+      const canvas = document.getElementById("galaxy");
+      const ctx = canvas.getContext("2d");
+
+      const starState = {
+        stars: [],
+        width: 0,
+        height: 0,
+        pointer: { x: 0, y: 0 },
+        parallax: { x: 0, y: 0 },
+      };
+
+      const resizeCanvas = () => {
+        starState.width = window.innerWidth;
+        starState.height = window.innerHeight;
+        const scale = window.devicePixelRatio || 1;
+        canvas.width = starState.width * scale;
+        canvas.height = starState.height * scale;
+        canvas.style.width = `${starState.width}px`;
+        canvas.style.height = `${starState.height}px`;
+        ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      };
+
+      const createStarField = () => {
+        const count = Math.floor(Math.max(starState.width, starState.height) * 0.65);
+        starState.stars = Array.from({ length: count }, () => ({
+          x: Math.random() * starState.width,
+          y: Math.random() * starState.height,
+          radius: Math.random() * 1.6 + 0.2,
+          opacity: Math.random() * 0.8 + 0.2,
+          drift: Math.random() * 0.3 + 0.05,
+          hue: 210 + Math.random() * 60,
+        }));
+      };
+
+      const handlePointerMove = (event) => {
+        const x = event.clientX / starState.width - 0.5;
+        const y = event.clientY / starState.height - 0.5;
+        starState.pointer.x = x;
+        starState.pointer.y = y;
+      };
+
+      const drawGalaxy = () => {
+        ctx.clearRect(0, 0, starState.width, starState.height);
+
+        const targetX = starState.pointer.x * 40;
+        const targetY = starState.pointer.y * 40;
+        starState.parallax.x += (targetX - starState.parallax.x) * 0.04;
+        starState.parallax.y += (targetY - starState.parallax.y) * 0.04;
+
+        const gradient = ctx.createRadialGradient(
+          starState.width * 0.3 + starState.parallax.x,
+          starState.height * 0.25 + starState.parallax.y,
+          0,
+          starState.width * 0.5,
+          starState.height * 0.6,
+          Math.max(starState.width, starState.height)
+        );
+        gradient.addColorStop(0, "rgba(120, 140, 255, 0.35)");
+        gradient.addColorStop(0.4, "rgba(62, 76, 132, 0.18)");
+        gradient.addColorStop(1, "rgba(5, 6, 8, 0.9)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, starState.width, starState.height);
+
+        starState.stars.forEach((star) => {
+          star.y += star.drift;
+          if (star.y > starState.height + 10) {
+            star.y = -10;
+            star.x = Math.random() * starState.width;
+          }
+          const offsetX = starState.parallax.x * (star.radius * 0.6);
+          const offsetY = starState.parallax.y * (star.radius * 0.6);
+          const twinkle = 0.6 + Math.sin(Date.now() * 0.001 + star.x) * 0.4;
+          ctx.beginPath();
+          ctx.fillStyle = `hsla(${star.hue}, 80%, 85%, ${star.opacity * twinkle})`;
+          ctx.arc(star.x + offsetX, star.y + offsetY, star.radius, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        requestAnimationFrame(drawGalaxy);
+      };
+
+      resizeCanvas();
+      createStarField();
+      window.addEventListener("resize", () => {
+        resizeCanvas();
+        createStarField();
+      });
+      window.addEventListener("pointermove", handlePointerMove);
+      drawGalaxy();
+
+      const form = document.getElementById("task-form");
+      const input = document.getElementById("task-input");
+      const list = document.getElementById("task-list");
+      const emptyState = document.getElementById("empty-state");
+      const remainingCount = document.getElementById("remaining-count");
+      const completedCount = document.getElementById("completed-count");
+      const countAll = document.getElementById("count-all");
+      const countActive = document.getElementById("count-active");
+      const countCompleted = document.getElementById("count-completed");
+      const clearCompleted = document.getElementById("clear-completed");
+      const filterButtons = document.querySelectorAll("[data-filter]");
+
+      const state = {
+        filter: "all",
+        tasks: [],
+      };
+
+      const STORAGE_KEY = "pulse-todo-tasks";
+
+      const formatTime = (timestamp) =>
+        new Intl.DateTimeFormat("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(timestamp);
+
+      const saveTasks = () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.tasks));
+      };
+
+      const loadTasks = () => {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          state.tasks = [];
+          return;
+        }
+        try {
+          state.tasks = JSON.parse(raw) ?? [];
+        } catch {
+          state.tasks = [];
+        }
+      };
+
+      const setFilter = (filter) => {
+        state.filter = filter;
+        filterButtons.forEach((button) => {
+          button.classList.toggle("active", button.dataset.filter === filter);
+        });
+        render();
+      };
+
+      const addTask = (text) => {
+        state.tasks.unshift({
+          id: crypto.randomUUID(),
+          text,
+          completed: false,
+          createdAt: Date.now(),
+        });
+        saveTasks();
+        render();
+      };
+
+      const toggleTask = (id) => {
+        state.tasks = state.tasks.map((task) =>
+          task.id === id ? { ...task, completed: !task.completed } : task
+        );
+        saveTasks();
+        render();
+      };
+
+      const removeTask = (id) => {
+        state.tasks = state.tasks.filter((task) => task.id !== id);
+        saveTasks();
+        render();
+      };
+
+      const clearDone = () => {
+        state.tasks = state.tasks.filter((task) => !task.completed);
+        saveTasks();
+        render();
+      };
+
+      const getFilteredTasks = () => {
+        switch (state.filter) {
+          case "active":
+            return state.tasks.filter((task) => !task.completed);
+          case "completed":
+            return state.tasks.filter((task) => task.completed);
+          default:
+            return state.tasks;
+        }
+      };
+
+      const updateCounts = () => {
+        const completed = state.tasks.filter((task) => task.completed).length;
+        const remaining = state.tasks.length - completed;
+        remainingCount.textContent = String(remaining);
+        completedCount.textContent = String(completed);
+        countAll.textContent = String(state.tasks.length);
+        countActive.textContent = String(remaining);
+        countCompleted.textContent = String(completed);
+      };
+
+      const render = () => {
+        const tasks = getFilteredTasks();
+        list.innerHTML = "";
+        tasks.forEach((task) => {
+          const item = document.createElement("div");
+          item.className = `todo ${task.completed ? "completed" : ""}`;
+          const time = formatTime(task.createdAt);
+          item.innerHTML = `
+            <input type="checkbox" ${task.completed ? "checked" : ""} />
+            <div>
+              <div class="task-text">${task.text}</div>
+              <div class="task-meta">Added ${time}</div>
+            </div>
+            <div class="todo-actions">
+              <button type="button" data-action="delete" aria-label="Delete task">✕</button>
+            </div>
+          `;
+
+          item.querySelector("input").addEventListener("change", () => toggleTask(task.id));
+          item.querySelector("[data-action='delete']").addEventListener("click", () =>
+            removeTask(task.id)
+          );
+          list.appendChild(item);
+        });
+
+        emptyState.style.display = tasks.length === 0 ? "block" : "none";
+        updateCounts();
+      };
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const text = input.value.trim();
+        if (!text) {
+          input.focus();
+          return;
+        }
+        addTask(text);
+        input.value = "";
+        input.focus();
+      });
+
+      filterButtons.forEach((button) => {
+        button.addEventListener("click", () => setFilter(button.dataset.filter));
+      });
+
+      clearCompleted.addEventListener("click", clearDone);
+
+      loadTasks();
+      render();
+    </script>
+  </body>
+</html>
