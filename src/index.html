@@ -420,6 +420,7 @@
         height: 0,
         pointer: { x: 0, y: 0 },
         parallax: { x: 0, y: 0 },
+        rotation: 0,
       };
 
       const resizeCanvas = () => {
@@ -436,8 +437,8 @@
       const createStarField = () => {
         const count = Math.floor(Math.max(starState.width, starState.height) * 0.65);
         starState.stars = Array.from({ length: count }, () => ({
-          x: Math.random() * starState.width,
-          y: Math.random() * starState.height,
+          x: (Math.random() - 0.5) * starState.width,
+          y: (Math.random() - 0.5) * starState.height,
           radius: Math.random() * 1.6 + 0.2,
           opacity: Math.random() * 0.8 + 0.2,
           drift: Math.random() * 0.3 + 0.05,
@@ -453,12 +454,14 @@
       };
 
       const drawGalaxy = () => {
+        const now = Date.now();
         ctx.clearRect(0, 0, starState.width, starState.height);
 
         const targetX = starState.pointer.x * 40;
         const targetY = starState.pointer.y * 40;
         starState.parallax.x += (targetX - starState.parallax.x) * 0.04;
         starState.parallax.y += (targetY - starState.parallax.y) * 0.04;
+        starState.rotation += 0.0004;
 
         const gradient = ctx.createRadialGradient(
           starState.width * 0.3 + starState.parallax.x,
@@ -474,20 +477,24 @@
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, starState.width, starState.height);
 
+        ctx.save();
+        ctx.translate(starState.width / 2 + starState.parallax.x * 0.4, starState.height / 2 + starState.parallax.y * 0.4);
+        ctx.rotate(starState.rotation);
         starState.stars.forEach((star) => {
           star.y += star.drift;
-          if (star.y > starState.height + 10) {
-            star.y = -10;
-            star.x = Math.random() * starState.width;
+          if (star.y > starState.height / 2 + 20) {
+            star.y = -starState.height / 2 - 20;
+            star.x = (Math.random() - 0.5) * starState.width;
           }
           const offsetX = starState.parallax.x * (star.radius * 0.6);
           const offsetY = starState.parallax.y * (star.radius * 0.6);
-          const twinkle = 0.6 + Math.sin(Date.now() * 0.001 + star.x) * 0.4;
+          const twinkle = 0.6 + Math.sin(now * 0.001 + star.x) * 0.4;
           ctx.beginPath();
           ctx.fillStyle = `hsla(${star.hue}, 80%, 85%, ${star.opacity * twinkle})`;
           ctx.arc(star.x + offsetX, star.y + offsetY, star.radius, 0, Math.PI * 2);
           ctx.fill();
         });
+        ctx.restore();
 
         requestAnimationFrame(drawGalaxy);
       };
