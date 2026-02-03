@@ -31,37 +31,13 @@
       body {
         margin: 0;
         font-family: "Inter", system-ui, sans-serif;
-        background: #050608;
+        background: radial-gradient(circle at top, #1b2130 0%, #0b0d12 55%, #050608 100%);
         color: var(--text);
         min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 32px 16px;
-        overflow-x: hidden;
-      }
-
-      #galaxy {
-        position: fixed;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 0;
-        pointer-events: none;
-      }
-
-      .backdrop {
-        position: fixed;
-        inset: 0;
-        background: radial-gradient(
-          circle at top,
-          rgba(38, 44, 80, 0.6) 0%,
-          rgba(9, 10, 18, 0.95) 60%,
-          #050608 100%
-        );
-        z-index: 1;
-        pointer-events: none;
-        mix-blend-mode: screen;
       }
 
       .app {
@@ -75,8 +51,6 @@
         display: grid;
         gap: 28px;
         animation: floatIn 0.8s ease;
-        position: relative;
-        z-index: 2;
       }
 
       header {
@@ -347,8 +321,6 @@
     </style>
   </head>
   <body>
-    <canvas id="galaxy"></canvas>
-    <div class="backdrop"></div>
     <main class="app">
       <header>
         <div class="title">
@@ -411,103 +383,6 @@
     </main>
 
     <script>
-      const canvas = document.getElementById("galaxy");
-      const ctx = canvas.getContext("2d");
-
-      const starState = {
-        stars: [],
-        width: 0,
-        height: 0,
-        pointer: { x: 0, y: 0 },
-        parallax: { x: 0, y: 0 },
-        rotation: 0,
-      };
-
-      const resizeCanvas = () => {
-        starState.width = window.innerWidth;
-        starState.height = window.innerHeight;
-        const scale = window.devicePixelRatio || 1;
-        canvas.width = starState.width * scale;
-        canvas.height = starState.height * scale;
-        canvas.style.width = `${starState.width}px`;
-        canvas.style.height = `${starState.height}px`;
-        ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      };
-
-      const createStarField = () => {
-        const count = Math.floor(Math.max(starState.width, starState.height) * 0.65);
-        starState.stars = Array.from({ length: count }, () => ({
-          x: (Math.random() - 0.5) * starState.width,
-          y: (Math.random() - 0.5) * starState.height,
-          radius: Math.random() * 1.6 + 0.2,
-          opacity: Math.random() * 0.8 + 0.2,
-          drift: Math.random() * 0.3 + 0.05,
-          hue: 210 + Math.random() * 60,
-        }));
-      };
-
-      const handlePointerMove = (event) => {
-        const x = event.clientX / starState.width - 0.5;
-        const y = event.clientY / starState.height - 0.5;
-        starState.pointer.x = x;
-        starState.pointer.y = y;
-      };
-
-      const drawGalaxy = () => {
-        const now = Date.now();
-        ctx.clearRect(0, 0, starState.width, starState.height);
-
-        const targetX = starState.pointer.x * 40;
-        const targetY = starState.pointer.y * 40;
-        starState.parallax.x += (targetX - starState.parallax.x) * 0.04;
-        starState.parallax.y += (targetY - starState.parallax.y) * 0.04;
-        starState.rotation += 0.0004;
-
-        const gradient = ctx.createRadialGradient(
-          starState.width * 0.3 + starState.parallax.x,
-          starState.height * 0.25 + starState.parallax.y,
-          0,
-          starState.width * 0.5,
-          starState.height * 0.6,
-          Math.max(starState.width, starState.height)
-        );
-        gradient.addColorStop(0, "rgba(120, 140, 255, 0.35)");
-        gradient.addColorStop(0.4, "rgba(62, 76, 132, 0.18)");
-        gradient.addColorStop(1, "rgba(5, 6, 8, 0.9)");
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, starState.width, starState.height);
-
-        ctx.save();
-        ctx.translate(starState.width / 2 + starState.parallax.x * 0.4, starState.height / 2 + starState.parallax.y * 0.4);
-        ctx.rotate(starState.rotation);
-        starState.stars.forEach((star) => {
-          star.y += star.drift;
-          if (star.y > starState.height / 2 + 20) {
-            star.y = -starState.height / 2 - 20;
-            star.x = (Math.random() - 0.5) * starState.width;
-          }
-          const offsetX = starState.parallax.x * (star.radius * 0.6);
-          const offsetY = starState.parallax.y * (star.radius * 0.6);
-          const twinkle = 0.6 + Math.sin(now * 0.001 + star.x) * 0.4;
-          ctx.beginPath();
-          ctx.fillStyle = `hsla(${star.hue}, 80%, 85%, ${star.opacity * twinkle})`;
-          ctx.arc(star.x + offsetX, star.y + offsetY, star.radius, 0, Math.PI * 2);
-          ctx.fill();
-        });
-        ctx.restore();
-
-        requestAnimationFrame(drawGalaxy);
-      };
-
-      resizeCanvas();
-      createStarField();
-      window.addEventListener("resize", () => {
-        resizeCanvas();
-        createStarField();
-      });
-      window.addEventListener("pointermove", handlePointerMove);
-      drawGalaxy();
-
       const form = document.getElementById("task-form");
       const input = document.getElementById("task-input");
       const list = document.getElementById("task-list");
